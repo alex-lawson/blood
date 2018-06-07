@@ -1,8 +1,8 @@
 require 'util'
 
 GameConfig = {
-    ageDecay = 10,
-    baseResist = 60,
+    ageDecay = 0.04,
+    baseResist = 0.15,
     neighbors = {
         {{-1, 0}, 100, 1.0},
         {{1, 0}, 100, 1.0},
@@ -20,9 +20,9 @@ GameConfig = {
         rxMax = 30,
         ryMin = 5,
         ryMax = 11,
-        rFactor = 1 / 25000,
+        rFactor = 1 / 98,
     },
-    bloodRed = 170
+    bloodRed = 0.6
     -- bloodRainTime = 0,
 }
 
@@ -74,27 +74,27 @@ function Game:update(dt)
             for i = 1, #self.neighbors do
                 local n = self.neighbors[i]
 
-                local tx, ty = x + n[1][1], y + n[1][2]
+                local nx, ny = x + n[1][1], y + n[1][2]
 
-                local _, _, _, tFlow = self.flowData:getPixel(tx, ty)
-                local flowDiff = flow - tFlow
+                local _, _, _, nFlow = self.flowData:getPixel(nx, ny)
+                local flowDiff = flow - nFlow
 
-                local tPressure = self.bloodData:getPixel(tx, ty)
+                local nPressure = self.bloodData:getPixel(nx, ny)
 
-                local resistance = self.baseResist - math.min((flowDiff + 0.5) * n[2], tPressure)
+                local resistance = self.baseResist - math.min(flowDiff * n[2], nPressure)
 
-                tPressure = math.max(0, tPressure - resistance) * n[3]
+                nPressure = math.max(0, nPressure - resistance) * n[3]
 
-                pressure = math.max(pressure, tPressure - self.ageDecay)
+                pressure = math.max(pressure, nPressure - self.ageDecay)
             end
 
-            if flow == 255 then -- collection cell
-                self.currentBlood = self.currentBlood + math.min(255, pressure)
-                newBloodData:setPixel(x, y, 0, 0, 0, 255)
+            if flow == 1 then -- collection cell
+                self.currentBlood = self.currentBlood + math.min(1, pressure)
+                newBloodData:setPixel(x, y, 0, 0, 0, 1)
             else
-                pressure = math.max(0, math.min(255, pressure) - self.ageDecay)
+                pressure = math.max(0, math.min(1, pressure) - self.ageDecay)
 
-                newBloodData:setPixel(x, y, pressure, 0, 0, 255)
+                newBloodData:setPixel(x, y, pressure, 0, 0, 1)
             end
         end
     end
@@ -117,17 +117,17 @@ function Game:render()
 
     local bloodImage = love.graphics.newImage(bloodRenderData)
 
-    love.graphics.setColor(255, 255, 255, 255)
+    love.graphics.setColor(1, 1, 1, 1)
 
     love.graphics.draw(self.bgImage, 0, 0)
     love.graphics.draw(bloodImage, 0, 0)
 
-    love.graphics.setColor(self.bloodRed, 0, 0, 255)
+    love.graphics.setColor(self.bloodRed, 0, 0, 1)
     local bloodFactor = math.min(1.0, self.currentBlood * self.poolConfig.rFactor)
     local rx = self.poolConfig.rxMin + bloodFactor * (self.poolConfig.rxMax - self.poolConfig.rxMin)
     local ry = self.poolConfig.ryMin + bloodFactor * (self.poolConfig.ryMax - self.poolConfig.ryMin)
     love.graphics.ellipse("fill", self.poolConfig.cx, self.poolConfig.cy, rx, ry, 50)
-    love.graphics.setColor(255, 255, 255, 255)
+    love.graphics.setColor(1, 1, 1, 1)
 
     love.graphics.draw(self.fgImage, 0, 0)
     -- love.graphics.print(string.format("Current blood: %d", self.currentBlood), 10, 5)
@@ -141,5 +141,5 @@ function Game:render()
 end
 
 function Game:addBlood(x, y)
-    self.bloodData:setPixel(x, y, 255, 0, 0, 255)
+    self.bloodData:setPixel(x, y, 1, 0, 0, 1)
 end
